@@ -26,7 +26,6 @@ file sealed class CommandRegistrator(IServiceCollection services) : ICommandRegi
         foreach (var alias in definition.Aliases) 
             services.AddKeyedScoped<ICommandHandler, TCommandHandler>(alias);
         
-        Console.WriteLine($"Adding handler for {definition.Name}");
         _definitions.Add(definition);
         return this;
     }

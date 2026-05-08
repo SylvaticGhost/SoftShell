@@ -24,8 +24,6 @@ public class StaticCommandTranslator : ICommandTranslator
         
         if (baseCommand != null && _map.TryGetValue(baseCommand, out var mappedCmd))
         {
-            // Якщо користувач ввів просто "ls", повернемо "Get-ChildItem"
-            // Якщо "ls -la" - ми поки що перекладаємо лише базу (можна розширювати)
             psCommand = mappedCmd;
             return true;
         }

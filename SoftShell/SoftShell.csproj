@@ -8,6 +8,7 @@
         <PublishAot>true</PublishAot>
         <SupportedOSPlatformVersion>windows</SupportedOSPlatformVersion>
         <InvariantGlobalization>true</InvariantGlobalization>
+        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
@@ -15,6 +16,8 @@
         <PackageReference Include="Spectre.Console"/>
         <PackageReference Include="TextCopy"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+        <PackageReference Include="OpenAI"/>
+        <PackageReference Include="System.Speech"/>
     </ItemGroup>
 
     <ItemGroup>

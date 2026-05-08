@@ -9,3 +9,6 @@ riderModule.iml
 */.vscode
 
 /offtop
+
+*credentials.json
+*secrets.json

@@ -1,34 +1,79 @@
 using System.Text;
 using SoftShell.Core;
 using Spectre.Console;
+using SoftShell;
 
 namespace SoftShell.Infra;
 
 public class LivePrompt(ICommandRegistry commandRegistry)
 {
-    public string ReadLine(string currentDirectory)
+    private int _ctrlCCount = 0;
+    private static readonly List<string> History = [];
+
+    public string? ReadLine(string currentDirectory)
     {
-        // Render initial prompt
-        AnsiConsole.Markup($"[rgb(190,89,133)] [[{Markup.Escape(currentDirectory)}]][/] [rgb(236,127,169)]>[/] ");
+        AnsiConsole.Markup($"[{ColorPalette.Primary}] [[{Markup.Escape(currentDirectory)}]][/] [{ColorPalette.Secondary}]>[/] ");
         
         int startLeft = Console.CursorLeft;
         int startTop = Console.CursorTop;
         
         StringBuilder buffer = new StringBuilder();
         int lastSuggestionCount = 0;
+        int historyIndex = History.Count;
 
         while (true)
         {
             var keyInfo = Console.ReadKey(intercept: true);
 
+            if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control) && keyInfo.Key == ConsoleKey.C)
+            {
+                ClearSuggestions(startTop, lastSuggestionCount);
+                _ctrlCCount++;
+                if (_ctrlCCount >= 2)
+                {
+                    return null;
+                }
+
+                AnsiConsole.MarkupLine($"[{ColorPalette.Tertiary}]^C[/]");
+                return string.Empty;
+            }
+
+            _ctrlCCount = 0;
+
             if (keyInfo.Key == ConsoleKey.Enter)
             {
                 ClearSuggestions(startTop, lastSuggestionCount);
                 Console.WriteLine();
-                return buffer.ToString();
+                string result = buffer.ToString();
+                if (!string.IsNullOrWhiteSpace(result) && (History.Count == 0 || History[^1] != result))
+                {
+                    History.Add(result);
+                }
+                return result;
             }
 
-            if (keyInfo.Key == ConsoleKey.Backspace)
+            if (keyInfo.Key == ConsoleKey.UpArrow)
+            {
+                if (historyIndex > 0)
+                {
+                    historyIndex--;
+                    ReplaceBuffer(startLeft, startTop, buffer, History[historyIndex]);
+                }
+            }
+            else if (keyInfo.Key == ConsoleKey.DownArrow)
+            {
+                if (historyIndex < History.Count - 1)
+                {
+                    historyIndex++;
+                    ReplaceBuffer(startLeft, startTop, buffer, History[historyIndex]);
+                }
+                else if (historyIndex == History.Count - 1)
+                {
+                    historyIndex++;
+                    ReplaceBuffer(startLeft, startTop, buffer, "");
+                }
+            }
+            else if (keyInfo.Key == ConsoleKey.Backspace)
             {
                 if (buffer.Length > 0)
                 {
@@ -51,18 +96,29 @@ public class LivePrompt(ICommandRegistry commandRegistry)
                     buffer.Clear();
                     buffer.Append(Command.Prefix + first.Name + " ");
                     
-                    AnsiConsole.Markup($"[rgb(236,127,169)]{Markup.Escape(buffer.ToString())}[/]");
+                    AnsiConsole.Markup($"[{ColorPalette.Secondary}]{Markup.Escape(buffer.ToString())}[/]");
                 }
             }
             else if (!char.IsControl(keyInfo.KeyChar))
             {
                 buffer.Append(keyInfo.KeyChar);
-                AnsiConsole.Markup($"[rgb(236,127,169)]{Markup.Escape(keyInfo.KeyChar.ToString())}[/]");
+                AnsiConsole.Markup($"[{ColorPalette.Secondary}]{Markup.Escape(keyInfo.KeyChar.ToString())}[/]");
             }
 
             ClearSuggestions(startTop, lastSuggestionCount);
             lastSuggestionCount = ShowSuggestions(buffer.ToString(), startTop);
         }
+    }
+
+    private static void ReplaceBuffer(int startLeft, int startTop, StringBuilder buffer, string newValue)
+    {
+        Console.SetCursorPosition(startLeft, startTop);
+        Console.Write(new string(' ', buffer.Length));
+        Console.SetCursorPosition(startLeft, startTop);
+        
+        buffer.Clear();
+        buffer.Append(newValue);
+        AnsiConsole.Markup($"[{ColorPalette.Secondary}]{Markup.Escape(buffer.ToString())}[/]");
     }
 
     private List<Command> GetSuggestions(string input)
@@ -95,7 +151,7 @@ public class LivePrompt(ICommandRegistry commandRegistry)
             
             var s = suggestions[i];
             Console.SetCursorPosition(0, row);
-            AnsiConsole.Markup($"[rgb(236,127,169)]{Command.Prefix}{Markup.Escape(s.Name).PadRight(maxNameLength)}[/] [rgb(255,184,224)]- {Markup.Escape(s.Description)}[/]");
+            AnsiConsole.Markup($"[{ColorPalette.Secondary}]{Command.Prefix}{Markup.Escape(s.Name).PadRight(maxNameLength)}[/] [{ColorPalette.Tertiary}]- {Markup.Escape(s.Description)}[/]");
             shownCount++;
         }
 

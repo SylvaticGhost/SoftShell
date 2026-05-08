@@ -20,12 +20,7 @@ public class StaticDocProvider : IDocProvider
     public string? GetDescription(string psCommand)
     {
         if (string.IsNullOrWhiteSpace(psCommand)) return null;
-
-        // Відрізаємо можливі аргументи (наприклад "New-Item -ItemType Directory" -> "New-Item")
         var baseCommand = psCommand.Split(' ')[0];
-
-        return _docs.TryGetValue(baseCommand, out var doc) 
-            ? doc 
-            : null;
+        return _docs.GetValueOrDefault(baseCommand);
     }   
 }
